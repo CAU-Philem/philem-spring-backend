@@ -5,6 +5,7 @@ import com.philem.philem.domain.model.entity.CameraType;
 import com.philem.philem.domain.model.entity.MountType;
 import com.philem.philem.domain.model.entity.SensorFormat;
 import com.philem.philem.domain.shared.enums.ConditionType;
+import com.philem.philem.domain.shared.enums.PriceType;
 import com.philem.philem.domain.shared.enums.UnitType;
 import lombok.Builder;
 import lombok.Value;
@@ -28,6 +29,8 @@ public class ListingSearchItem {
     LocalDateTime updatedAt;
     String postUrl;
     String thumbnailUrl;
+
+    PriceType priceType;
 
     Long salesCount; // 정렬 기준
 }

@@ -109,7 +109,11 @@ public class ListingSearchRepositoryImpl implements ListingSearchRepository {
               m.camera_type    AS camera_type,
               m.mount          AS mount,
               m.sensor_format  AS sensor_format,
-              li.price         AS price,
+              CASE
+                WHEN li.price_type = 'BUNDLE_SHARED' THEN l.price
+                ELSE li.price
+              END AS display_price,
+              li.price_type    AS price_type,
               li.condition     AS `condition`,
               li.post_url      AS post_url,
               l.thumbnail_url  AS thumbnail_url,
@@ -137,10 +141,15 @@ public class ListingSearchRepositoryImpl implements ListingSearchRepository {
                     .cameraType(CameraType.valueOf(rs.getString("camera_type")))
                     .mount(dbValueToMount(rs.getString("mount")))
                     .sensorFormat(dbValueToSensorFormat(rs.getString("sensor_format")))
-                    .price(rs.getInt("price"))
+                    .price(rs.getInt("display_price"))
                     .condition(rs.getString("condition") == null ? null : ConditionType.valueOf(rs.getString("condition")))
                     .postUrl(rs.getString("post_url"))
                     .thumbnailUrl(rs.getString("thumbnail_url"))
+                    .priceType(
+                            rs.getString("price_type") == null
+                                    ? null
+                                    : PriceType.valueOf(rs.getString("price_type"))
+                    )
                     .salesCount(rs.getLong("sales_count"))
                     .build();
         });
