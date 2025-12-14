@@ -35,29 +35,46 @@ public interface ListingItemRepository extends JpaRepository<ListingItem, Long> 
     @Query(value = """
         SELECT li.*
         FROM ListingItem li
-        JOIN listing l ON l.seq = li.listing_id
-        JOIN regions r ON r.id = CAST(l.region_id AS UNSIGNED)
-    
+        JOIN listing l
+          ON l.seq = li.listing_id
+        JOIN regions r
+          ON r.id = CAST(l.region_id AS UNSIGNED)
+        JOIN global_median_by_model_condition gm
+          ON gm.model_id = li.model_id
+         AND gm.`condition` COLLATE utf8mb4_unicode_ci = li.`condition` COLLATE utf8mb4_unicode_ci
+        
         WHERE li.model_id = :modelId
+          AND l.status = 'ACTIVE'
           AND li.condition IS NOT NULL
-          AND l.status = 'Active'
           AND (:condition IS NULL OR li.condition = :condition)
-    
-          -- 토글: SINGLE/BUNDLE (price_type으로)
+        
+          -- SINGLE / BUNDLE 토글 (price_type 기준)
           AND (:priceType IS NULL OR li.price_type = :priceType)
-    
+        
           AND ST_Distance_Sphere(
                 POINT(r.lng, r.lat),
                 POINT(:userLng, :userLat)
               ) <= :radiusM
-    
+        
+          -- ⭐ median /10 ~ *10 필터
+          AND (
+            CASE
+              WHEN li.price_type = 'BUNDLE_SHARED'
+                THEN l.price
+              ELSE COALESCE(NULLIF(li.price, 0), l.price)
+            END
+          ) BETWEEN (gm.global_median_price / 4)
+              AND (gm.global_median_price * 4)
+        
         ORDER BY
           CASE
-            WHEN (:priceType = 'BUNDLE_SHARED') THEN l.price
+            WHEN li.price_type = 'BUNDLE_SHARED'
+              THEN l.price
             ELSE COALESCE(NULLIF(li.price, 0), l.price)
           END ASC,
           l.boosted_at DESC,
           l.seq DESC
+        
         LIMIT :limit
         """, nativeQuery = true)
     List<ListingItem> findNearbySameModelPrice(
@@ -66,9 +83,10 @@ public interface ListingItemRepository extends JpaRepository<ListingItem, Long> 
             @Param("userLng") double userLng,
             @Param("radiusM") int radiusM,
             @Param("limit") int limit,
-            @Param("condition") String condition,
-            @Param("priceType") String priceType
+            @Param("condition") String condition,   // ✅ "A" | "B" | "C"
+            @Param("priceType") String priceType    // PER_ITEM | BUNDLE_SHARED
     );
+
 
 
 }
