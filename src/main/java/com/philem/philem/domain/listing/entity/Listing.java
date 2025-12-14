@@ -1,5 +1,6 @@
 package com.philem.philem.domain.listing.entity;
 
+import com.philem.philem.domain.region.entity.Region;
 import com.philem.philem.domain.shared.enums.MarketType;
 import jakarta.persistence.*;
 import lombok.*;
@@ -39,6 +40,7 @@ public class Listing {
 
     private LocalDateTime boostedAt;
 
+    @Column(name = "region_id", nullable = false)
     private Long regionId;
 
     @Enumerated(EnumType.STRING)
@@ -49,4 +51,9 @@ public class Listing {
 
     @OneToMany(mappedBy = "listing", fetch = FetchType.LAZY)
     private List<ListingItem> items = new ArrayList<>();
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "region_id", nullable = false, insertable = false, updatable = false)
+    private Region region;
+
 }

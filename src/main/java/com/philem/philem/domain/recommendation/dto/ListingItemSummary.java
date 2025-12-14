@@ -10,19 +10,25 @@ public record ListingItemSummary(
         String listing_id,
         Long model_id,
         Long region_id,
-        Long price,
+        String region_name,
+
+        Long price,           // "정렬/표시"에 쓰는 가격 (단일=li.price, 번들=l.price)
+        Boolean is_bundle,    // 번들 여부
+
         ConditionType condition,
         String post_url,
         String thumbnail_url,
-        LocalDateTime updated_at
+        LocalDateTime boosted_at
 ) {
-    public static ListingItemSummary from(ListingItem li) {
+    public static ListingItemSummary from(ListingItem li, Boolean isBundle, Long price) {
         return new ListingItemSummary(
                 li.getListing().getSeq(),
                 li.getListing().getId(),
                 li.getItemModel().getId(),
                 li.getListing().getRegionId(),
-                li.getPrice(),
+                li.getListing().getRegion().getName(),
+                price,
+                isBundle,
                 li.getCondition(),
                 li.getListing().getPostUrl(),
                 li.getListing().getThumbnailUrl(),

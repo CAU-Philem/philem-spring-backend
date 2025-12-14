@@ -1,5 +1,6 @@
 package com.philem.philem.domain.region.entity;
 
+import com.philem.philem.domain.listing.entity.Listing;
 import com.philem.philem.domain.pricing.entity.SaleRecord;
 import jakarta.persistence.*;
 import lombok.*;
@@ -25,4 +26,7 @@ public class Region {
 
     @OneToMany(mappedBy = "region", fetch = FetchType.LAZY)
     private List<SaleRecord> saleRecords = new ArrayList<>();
+
+    @OneToMany(mappedBy = "region", fetch = FetchType.LAZY)
+    private List<Listing> listings = new ArrayList<>();
 }
