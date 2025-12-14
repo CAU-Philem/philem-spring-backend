@@ -27,6 +27,7 @@ public class ListingSearchItem {
     ConditionType condition;
     LocalDateTime updatedAt;
     String postUrl;
+    String thumbnailUrl;
 
     Long salesCount; // 정렬 기준
 }

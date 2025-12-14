@@ -25,6 +25,7 @@ public class ListingSearchRepositoryImpl implements ListingSearchRepository {
         StringBuilder where = new StringBuilder(" WHERE 1=1 \n");
         MapSqlParameterSource p = new MapSqlParameterSource();
 
+        where.append(" AND (l.status <> 'SoldOut') \n");
         // --------------------------
         // ItemModel 기반 필터
         // --------------------------
@@ -82,6 +83,7 @@ public class ListingSearchRepositoryImpl implements ListingSearchRepository {
         String countSql = """
             SELECT COUNT(*)
             FROM ListingItem li
+            JOIN listing l ON l.seq = li.listing_id
             JOIN itemModel m ON m.id = li.model_id
         """ + where;
 
@@ -110,8 +112,10 @@ public class ListingSearchRepositoryImpl implements ListingSearchRepository {
               li.price         AS price,
               li.condition     AS `condition`,
               li.post_url      AS post_url,
+              l.thumbnail_url  AS thumbnail_url,
               COALESCE(sr.sales_count, 0) AS sales_count
             FROM ListingItem li
+            JOIN listing l ON l.seq = li.listing_id
             JOIN itemModel m ON m.id = li.model_id
             LEFT JOIN (
               SELECT model_id, COUNT(*) AS sales_count
@@ -136,6 +140,7 @@ public class ListingSearchRepositoryImpl implements ListingSearchRepository {
                     .price(rs.getInt("price"))
                     .condition(rs.getString("condition") == null ? null : ConditionType.valueOf(rs.getString("condition")))
                     .postUrl(rs.getString("post_url"))
+                    .thumbnailUrl(rs.getString("thumbnail_url"))
                     .salesCount(rs.getLong("sales_count"))
                     .build();
         });
