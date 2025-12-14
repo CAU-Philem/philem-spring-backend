@@ -22,4 +22,6 @@ public class ListingController {
     public PythonUrlResponse analyze(@RequestBody KarrotAnalyzeRequest request) {
         return listingService.getModelsForUrl(request.url());
     }
+
+    //@GetMapping("/")
 }

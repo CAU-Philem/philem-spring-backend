@@ -13,6 +13,7 @@ public record ListingItemSummary(
         Long price,
         ConditionType condition,
         String post_url,
+        String thumbnail_url,
         LocalDateTime updated_at
 ) {
     public static ListingItemSummary from(ListingItem li) {
@@ -24,6 +25,7 @@ public record ListingItemSummary(
                 li.getPrice(),
                 li.getCondition(),
                 li.getListing().getPostUrl(),
+                li.getListing().getThumbnailUrl(),
                 li.getListing().getBoostedAt()
         );
     }
