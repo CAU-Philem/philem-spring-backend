@@ -13,6 +13,7 @@ import java.util.List;
 @Value
 @Builder
 public class ListingSearchCondition {
+
     // ListingItem filters
     ConditionType condition; // A/B/C
     Integer minPrice;

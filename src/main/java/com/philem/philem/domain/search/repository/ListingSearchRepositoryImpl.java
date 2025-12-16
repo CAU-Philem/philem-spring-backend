@@ -26,9 +26,8 @@ public class ListingSearchRepositoryImpl implements ListingSearchRepository {
         MapSqlParameterSource p = new MapSqlParameterSource();
 
         where.append(" AND (l.status <> 'SoldOut') \n");
-        // --------------------------
+
         // ItemModel 기반 필터
-        // --------------------------
         if (c.getBrand() != null) {
             where.append(" AND m.brand = :brand \n");
             p.addValue("brand", c.getBrand().name());
@@ -59,9 +58,7 @@ public class ListingSearchRepositoryImpl implements ListingSearchRepository {
             p.addValue("sensorFormat", c.getSensorFormat().label());
         }
 
-        // --------------------------
         // ListingItem 기반 필터
-        // --------------------------
         if (c.getCondition() != null) {
             where.append(" AND li.condition = :cond \n");
             p.addValue("cond", c.getCondition().name());
@@ -77,15 +74,34 @@ public class ListingSearchRepositoryImpl implements ListingSearchRepository {
             p.addValue("maxPrice", c.getMaxPrice());
         }
 
-        // --------------------------
         // COUNT
-        // --------------------------
+        /*
         String countSql = """
             SELECT COUNT(*)
             FROM ListingItem li
             JOIN listing l ON l.seq = li.listing_id
             JOIN itemModel m ON m.id = li.model_id
         """ + where;
+
+         */
+
+        String countSql = """
+        WITH base AS (
+            SELECT
+                li.id,
+                ROW_NUMBER() OVER (
+                PARTITION BY li.model_id
+                ORDER BY li.id DESC
+                ) AS rn
+            FROM ListingItem li
+            JOIN listing l ON l.seq = li.listing_id
+            JOIN itemModel m ON m.id = li.model_id
+        """ + where + """
+        )
+        SELECT COUNT(*)
+        FROM base
+        WHERE rn <= 5
+        """;
 
         long total = jdbc.queryForObject(countSql, p, Long.class);
 
@@ -96,39 +112,47 @@ public class ListingSearchRepositoryImpl implements ListingSearchRepository {
         p.addValue("limit", size);
         p.addValue("offset", offset);
 
-        // --------------------------
+
         // MAIN QUERY (판매량 정렬)
-        // --------------------------
         String sql = """
+        WITH base AS (
             SELECT
-              li.id            AS listing_item_id,
-              li.model_id      AS model_id,
-              m.name           AS model_name,
-              m.brand          AS brand,
-              m.unit_type      AS unit_type,
-              m.camera_type    AS camera_type,
-              m.mount          AS mount,
-              m.sensor_format  AS sensor_format,
-              CASE
-                WHEN li.price_type = 'BUNDLE_SHARED' THEN l.price
-                ELSE li.price
-              END AS display_price,
-              li.price_type    AS price_type,
-              li.condition     AS `condition`,
-              li.post_url      AS post_url,
-              l.thumbnail_url  AS thumbnail_url,
-              COALESCE(sr.sales_count, 0) AS sales_count
+                li.id            AS listing_item_id,
+                li.model_id      AS model_id,
+                m.name           AS model_name,
+                m.brand          AS brand,
+                m.unit_type      AS unit_type,
+                m.camera_type    AS camera_type,
+                m.mount          AS mount,
+                m.sensor_format  AS sensor_format,
+                CASE
+                    WHEN li.price_type = 'BUNDLE_SHARED' THEN l.price
+                    ELSE li.price
+                END AS display_price,
+                li.price_type    AS price_type,
+                li.condition     AS `condition`,
+                li.post_url      AS post_url,
+                l.thumbnail_url  AS thumbnail_url,
+                COALESCE(sr.sales_count, 0) AS sales_count,
+                ROW_NUMBER() OVER (
+                    PARTITION BY li.model_id
+                    ORDER BY li.id DESC
+                ) AS rn
             FROM ListingItem li
             JOIN listing l ON l.seq = li.listing_id
             JOIN itemModel m ON m.id = li.model_id
             LEFT JOIN (
-              SELECT model_id, COUNT(*) AS sales_count
-              FROM SaleRecord
-              GROUP BY model_id
+                SELECT model_id, COUNT(*) AS sales_count
+                FROM SaleRecord
+                GROUP BY model_id
             ) sr ON sr.model_id = li.model_id
         """ + where + """
-            ORDER BY sales_count DESC, li.id DESC
-            LIMIT :limit OFFSET :offset
+        )
+        SELECT *
+        FROM base
+        WHERE rn <= 5
+        ORDER BY sales_count DESC, rn ASC, listing_item_id DESC
+        LIMIT :limit OFFSET :offset
         """;
 
         List<ListingSearchItem> items = jdbc.query(sql, p, (rs, rowNum) -> {
